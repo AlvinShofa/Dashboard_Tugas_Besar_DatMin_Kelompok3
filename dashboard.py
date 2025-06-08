@@ -145,7 +145,7 @@ sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
             yticklabels=['Tidak Ikonik', 'Ikonik'], ax=ax3)
 ax3.set_xlabel('Prediksi')
 ax3.set_ylabel('Aktual')
-ax3.set_title('Matriks Kebingungan')
+ax3.set_title('Confussion Matrix')
 st.pyplot(fig3)
 
 st.subheader("📊 Kurva ROC dan Nilai AUC")
