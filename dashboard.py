@@ -38,8 +38,9 @@ data_scaled = scaler.fit_transform(data_cluster)
 df_scaled = pd.DataFrame(data_scaled, columns=selected_cols)
 
 n_clusters = 3
-kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-labels = kmeans.fit_predict(data_scaled)
+# KMeans untuk clustering (utama)
+kmeans_final = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
+labels = kmeans_final.fit_predict(data_scaled)
 df_result = df.copy()
 df_result['Cluster'] = labels
 
@@ -74,13 +75,16 @@ st.pyplot(fig)
 # Visualisasi 2D
 st.subheader("🧭 Visualisasi Clustering (2 Fitur Pertama)")
 x_feature, y_feature = selected_cols[0], selected_cols[1]
+x_idx = selected_cols.index(x_feature)
+y_idx = selected_cols.index(y_feature)
+
 fig, ax = plt.subplots()
 scatter = ax.scatter(
     df_scaled[x_feature], df_scaled[y_feature],
     c=labels, cmap='Set2'
 )
-centroids = kmeans.cluster_centers_
-ax.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=200, label='Centroid')
+centroids = kmeans_final.cluster_centers_
+ax.scatter(centroids[:, x_idx], centroids[:, y_idx], c='red', marker='X', s=200, label='Centroid')
 ax.set_xlabel(x_feature)
 ax.set_ylabel(y_feature)
 ax.set_title("Clustering K-Means")
