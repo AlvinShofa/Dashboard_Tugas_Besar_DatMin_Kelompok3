@@ -12,9 +12,6 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 st.set_page_config(page_title="Disney Princess Dashboard", layout="wide")
 st.title("👑 Disney Princess Popularity Dashboard")
 
-# Sidebar navigation
-page = st.sidebar.selectbox("Pilih Halaman", ["Dashboard Umum", "Unsupervised Learning (K-Means)", "Supervised Learning (Logistic Regression)"])
-
 @st.cache_data
 def load_data():
     return pd.read_csv("disney_princess_popularity_dataset_300_rows.csv")
@@ -22,34 +19,12 @@ def load_data():
 df = load_data()
 
 # ---------------------------- DASHBOARD UMUM ----------------------------
-if menu == "Dashboard Umum":
-st.title("👑 Disney Princess Popularity Dashboard")
 st.header("📊 Ringkasan Dataset")
 st.dataframe(df.head())
 
-bash
-Copy
-Edit
-st.subheader("📌 Statistik Umum")
-st.dataframe(df.describe())
-
-st.subheader("📊 Distribusi Status IsIconic")
-fig0, ax0 = plt.subplots()
-df['IsIconic_Biner'] = df['IsIconic'].map({'Yes': 1, 'No': 0})
-df['IsIconic_Biner'].dropna().map({1: 'Ikonik', 0: 'Tidak Ikonik'}).value_counts().sort_index().plot(
-    kind='bar', color=['gray', 'gold'], ax=ax0)
-ax0.set_title('Distribusi Putri Disney Ikonik vs Tidak')
-ax0.set_ylabel('Jumlah')
-st.pyplot(fig0)
-
-
 # ---------------------------- UNSUPERVISED LEARNING (K-MEANS) ----------------------------
-elif menu == "Unsupervised Learning":
-st.title("🔍 Unsupervised Learning - K-Means Clustering")
+st.header("🔍 Unsupervised Learning - K-Means Clustering")
 
-python
-Copy
-Edit
 selected_cols = [
     'PopularityScore',
     'GoogleSearchIndex2024',
@@ -60,13 +35,11 @@ selected_cols = [
 data_cluster = df[selected_cols].dropna()
 scaler = MinMaxScaler()
 data_scaled = scaler.fit_transform(data_cluster)
-
 df_scaled = pd.DataFrame(data_scaled, columns=selected_cols)
 
 n_clusters = 3
 kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
 labels = kmeans.fit_predict(data_scaled)
-
 df_result = df.copy()
 df_result['Cluster'] = labels
 
@@ -75,7 +48,6 @@ cluster_names = {
     1: "Classic Icons",
     2: "Underrated Gems"
 }
-
 df_result['Cluster Label'] = df_result['Cluster'].map(cluster_names)
 
 st.subheader("📁 Hasil Clustering")
@@ -85,130 +57,125 @@ st.subheader("📌 Statistik Tiap Cluster")
 st.write(df_result.groupby('Cluster Label')[selected_cols].mean())
 
 st.subheader("📈 Elbow Method")
+# Plot Elbow Method
 wcss = []
 for i in range(1, 11):
-    km = KMeans(n_clusters=i, random_state=42, n_init='auto')
-    km.fit(data_scaled)
-    wcss.append(km.inertia_)
+    kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
+    kmeans.fit(data_scaled)
+    wcss.append(kmeans.inertia_)
 
-fig_elbow, ax_elbow = plt.subplots()
-ax_elbow.plot(range(1, 11), wcss, marker='o')
-ax_elbow.set_title('Metode Elbow')
-ax_elbow.set_xlabel('Jumlah Cluster')
-ax_elbow.set_ylabel('WCSS')
-st.pyplot(fig_elbow)
+fig, ax = plt.subplots()
+ax.plot(range(1, 11), wcss, marker='o')
+ax.set_title('Metode Elbow untuk Menentukan Jumlah Cluster')
+ax.set_xlabel('Jumlah Cluster')
+ax.set_ylabel('WCSS')
+st.pyplot(fig)
 
 st.subheader("🧭 Visualisasi Clustering")
-fig_vis, ax_vis = plt.subplots(figsize=(10, 6))
-scatter = ax_vis.scatter(
-    data_scaled[:, 0],  # PopularityScore scaled
-    data_scaled[:, 1],  # GoogleSearchIndex2024 scaled
+
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+ax2.scatter(
+    data_scaled[:, 0],  # Popularity Score (scaled)
+    data_scaled[:, 1],  # Google Search Index 2024 (scaled)
     c=labels,
     cmap='viridis',
     marker='o'
 )
-ax_vis.set_title('K-Means Clustering of Disney Princesses')
-ax_vis.set_xlabel('Popularity Score (scaled)')
-ax_vis.set_ylabel('Google Search Index 2024 (scaled)')
-colorbar = fig_vis.colorbar(scatter, ax=ax_vis)
+ax2.set_title('K-Means Clustering of Disney Princesses')
+ax2.set_xlabel('Popularity Score (scaled)')
+ax2.set_ylabel('Google Search Index 2024 (scaled)')
+colorbar = fig2.colorbar(ax2.collections[0], ax=ax2)
 colorbar.set_label('Cluster')
-st.pyplot(fig_vis)
+st.pyplot(fig2)
 
 st.subheader("📝 Detail Tiap Cluster")
-for cid in sorted(cluster_names):
-    st.markdown(f"**Cluster {cid} - {cluster_names[cid]}**")
-    st.dataframe(df_result[df_result['Cluster'] == cid][['PrincessName'] + selected_cols])
-
+for cluster_id in sorted(cluster_names):
+    st.markdown(f"**Cluster {cluster_id} - {cluster_names[cluster_id]}**")
+    st.dataframe(df_result[df_result['Cluster'] == cluster_id][['PrincessName'] + selected_cols].reset_index(drop=True))
 
 # ---------------------------- SUPERVISED LEARNING (LOGISTIC REGRESSION) ----------------------------
-elif menu == "Supervised Learning":
-st.title("📉 Supervised Learning - Logistic Regression")
+st.header("📉 Supervised Learning - Logistic Regression")
 
-python
-Copy
-Edit
+# Preprocessing
 st.subheader("🔧 Persiapan Data")
-df['IsIconic_Biner'] = df['IsIconic'].map({'Yes': 1, 'No': 0})
-features = [
-    'PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore',
-    'BoxOfficeMillions', 'IMDB_Rating', 'AvgScreenTimeMinutes',
-    'NumMerchItemsOnAmazon', 'InstagramFanPages', 'TikTokHashtagViewsMillions'
-]
-X = df[features]
-y = df['IsIconic_Biner']
+df['IsIconic'] = df['IsIconic'].map({'Yes': 1, 'No': 0})
+features_for_regression = [
+    'PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore', 'BoxOfficeMillions',
+    'IMDB_Rating', 'AvgScreenTimeMinutes', 'NumMerchItemsOnAmazon', 'InstagramFanPages',
+    'TikTokHashtagViewsMillions']
+target = 'IsIconic'
+X = df[features_for_regression]
+y = df[target]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
 scaler = MinMaxScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-model = LogisticRegression(random_state=42, max_iter=1000)
-model.fit(X_train_scaled, y_train)
-y_pred = model.predict(X_test_scaled)
-y_proba = model.predict_proba(X_test_scaled)[:, 1]
+# Modeling
+logreg = LogisticRegression(random_state=42, max_iter=1000)
+logreg.fit(X_train_scaled, y_train)
+y_pred = logreg.predict(X_test_scaled)
+y_pred_proba = logreg.predict_proba(X_test_scaled)[:, 1]
 
+# Evaluation
 st.subheader("📋 Laporan Klasifikasi")
+report = classification_report(y_test, y_pred, output_dict=True)
 st.text(classification_report(y_test, y_pred))
 
 st.markdown("""
-**Penjelasan Metrik:**
-- Precision: Dari semua prediksi "ikonik", berapa yang benar.
-- Recall: Dari semua yang seharusnya ikonik, berapa yang ditemukan.
-- F1-score: Gabungan Precision dan Recall
-- Support: Jumlah data per kelas
+**Penjelasan:**
+- **Precision**: Seberapa akurat model saat memprediksi kelas tersebut. Misalnya, dari semua prediksi "ikonik", berapa yang benar-benar ikon.
+- **Recall**: Seberapa baik model menemukan semua contoh dari kelas tersebut. Misalnya, dari semua putri yang memang "ikonik", berapa yang berhasil ditemukan oleh model.
+- **F1-score**: Harmonik rata-rata precision dan recall, berguna untuk dataset tidak seimbang antara kelas.
+- **Support**: Jumlah data aktual dari masing-masing kelas di test set.
 
-Interpretasi penting dalam konteks Disney Princess.
+Model ini mencoba membedakan antara putri yang ikonik dan tidak dengan mempertimbangkan faktor-faktor seperti:
+- Skor popularitas (Popularity Score, Google Search Index, dll)
+- Keberhasilan film (Box Office, IMDB)
+- Aktivitas penggemar (jumlah fan page, views TikTok)
+
+Hasil klasifikasi ini membantu dalam memahami fitur mana yang paling mempengaruhi kemungkinan seorang putri dianggap ikonik.
 """)
 
-st.subheader("🧮 Confussion Matrix")
-conf = confusion_matrix(y_test, y_pred)
-fig_conf, ax_conf = plt.subplots()
-sns.heatmap(conf, annot=True, fmt='d', cmap='Blues', xticklabels=['Tidak Ikonik', 'Ikonik'], yticklabels=['Tidak Ikonik', 'Ikonik'], ax=ax_conf)
-ax_conf.set_title('Matriks Kebingungan')
-ax_conf.set_xlabel('Prediksi')
-ax_conf.set_ylabel('Aktual')
-st.pyplot(fig_conf)
+st.subheader("🧮 Confusion Matrix")
+conf_matrix = confusion_matrix(y_test, y_pred)
+fig3, ax3 = plt.subplots()
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['Tidak Ikonik', 'Ikonik'],
+            yticklabels=['Tidak Ikonik', 'Ikonik'], ax=ax3)
+ax3.set_xlabel('Prediksi')
+ax3.set_ylabel('Aktual')
+ax3.set_title('Matriks Kebingungan')
+st.pyplot(fig3)
 
-st.markdown("""
-Matriks kebingungan digunakan untuk mengevaluasi performa klasifikasi:
-- True Positive (TP): Prediksi Ikonik & Benar
-- False Positive (FP): Prediksi Ikonik, tapi salah
-- False Negative (FN): Tidak diprediksi ikonik, padahal iya
-- True Negative (TN): Prediksi Tidak Ikonik & Benar
-
-Metrik seperti Akurasi, Precision, Recall berasal dari sini.
-""")
-
-st.subheader("📊 Kurva ROC dan AUC")
-fpr, tpr, _ = roc_curve(y_test, y_proba)
-auc = roc_auc_score(y_test, y_proba)
-fig_roc, ax_roc = plt.subplots()
-ax_roc.plot(fpr, tpr, label=f"AUC = {auc:.2f}", color="darkorange")
-ax_roc.plot([0,1],[0,1],'--', color='gray')
-ax_roc.set_title("ROC Curve")
-ax_roc.set_xlabel("False Positive Rate")
-ax_roc.set_ylabel("True Positive Rate")
-ax_roc.legend()
-st.pyplot(fig_roc)
+st.subheader("📊 Kurva ROC dan Nilai AUC")
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+roc_auc = roc_auc_score(y_test, y_pred_proba)
+fig4, ax4 = plt.subplots()
+ax4.plot(fpr, tpr, color='darkorange', lw=2, label=f'Kurva ROC (AUC = {roc_auc:.2f})')
+ax4.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+ax4.set_xlim([0.0, 1.0])
+ax4.set_ylim([0.0, 1.05])
+ax4.set_xlabel('Tingkat Positif Palsu')
+ax4.set_ylabel('Tingkat Positif Benar')
+ax4.set_title('Kurva ROC')
+ax4.legend(loc="lower right")
+st.pyplot(fig4)
 
 st.subheader("📌 Pentingnya Fitur")
-coef = model.coef_[0]
-feature_imp = pd.DataFrame({'Fitur': features, 'Koefisien': coef})
-feature_imp['Rasio Odds'] = np.exp(feature_imp['Koefisien'])
-feature_imp_sorted = feature_imp.sort_values('Koefisien', ascending=False)
+feature_importance = pd.DataFrame({
+    'Fitur': features_for_regression,
+    'Koefisien': logreg.coef_[0]
+}).sort_values('Koefisien', ascending=False)
 
-fig_feat, ax_feat = plt.subplots()
-sns.barplot(data=feature_imp_sorted, y='Fitur', x='Koefisien', palette='viridis', ax=ax_feat)
-ax_feat.set_title("Koefisien Fitur dalam Model")
-st.pyplot(fig_feat)
+fig5, ax5 = plt.subplots()
+sns.barplot(data=feature_importance, x='Koefisien', y='Fitur', palette='viridis', ax=ax5)
+ax5.set_title('Pentingnya Fitur dalam Memprediksi Status Ikonik')
+ax5.set_xlabel('Nilai Koefisien')
+ax5.set_ylabel('Fitur')
+st.pyplot(fig5)
 
-st.subheader("📈 Rasio Odds (e^Koefisien)")
-st.dataframe(feature_imp_sorted)
-
-st.subheader("📍 Prediksi vs Aktual IsIconic")
-hasil_pred = pd.DataFrame({
-    'Princess': df.loc[y_test.index, 'PrincessName'],
-    'Aktual IsIconic': y_test.map({1: 'Ikonik', 0: 'Tidak'}),
-    'Prediksi IsIconic': pd.Series(y_pred, index=y_test.index).map({1: 'Ikonik', 0: 'Tidak'})
-})
-st.dataframe(hasil_pred.reset_index(drop=True))
+# Odds Ratio
+feature_importance['Rasio_Odds'] = np.exp(feature_importance['Koefisien'])
+st.subheader("📈 Rasio Odds (Koefisien Eksponensial)")
+st.dataframe(feature_importance.sort_values('Rasio_Odds', ascending=False))
