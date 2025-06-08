@@ -29,7 +29,7 @@ if page == "Dashboard Umum":
     st.write(df.describe())
     st.subheader("📌 Distribusi Target (IsIconic)")
     fig0, ax0 = plt.subplots()
-    df['IsIconic'].map({1:'Ikonik', 0:'Tidak Ikonik'}).value_counts().plot(kind='bar', color=['gold', 'gray'], ax=ax0)
+    df['IsIconic'].dropna().map({1:'Ikonik', 0:'Tidak Ikonik'}).value_counts().sort_index().plot(kind='bar', color=['gray', 'gold'], ax=ax0)
     ax0.set_title('Distribusi IsIconic')
     ax0.set_ylabel('Jumlah')
     st.pyplot(fig0)
