@@ -12,6 +12,9 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 st.set_page_config(page_title="Disney Princess Dashboard", layout="wide")
 st.title("👑 Disney Princess Popularity Dashboard")
 
+# Sidebar navigation
+page = st.sidebar.selectbox("Pilih Halaman", ["Dashboard Umum", "Unsupervised Learning (K-Means)", "Supervised Learning (Logistic Regression)"])
+
 @st.cache_data
 def load_data():
     return pd.read_csv("disney_princess_popularity_dataset_300_rows.csv")
@@ -19,79 +22,87 @@ def load_data():
 df = load_data()
 
 # ---------------------------- DASHBOARD UMUM ----------------------------
-st.header("📊 Ringkasan Dataset")
-st.dataframe(df.head())
+if page == "Dashboard Umum":
+    st.header("📊 Ringkasan Dataset")
+    st.dataframe(df.head())
+    st.subheader("📈 Statistik Umum")
+    st.write(df.describe())
+    st.subheader("📌 Distribusi Target (IsIconic)")
+    fig0, ax0 = plt.subplots()
+    df['IsIconic'].map({1:'Ikonik', 0:'Tidak Ikonik'}).value_counts().plot(kind='bar', color=['gold', 'gray'], ax=ax0)
+    ax0.set_title('Distribusi IsIconic')
+    ax0.set_ylabel('Jumlah')
+    st.pyplot(fig0)
 
 # ---------------------------- UNSUPERVISED LEARNING (K-MEANS) ----------------------------
-st.header("🔍 Unsupervised Learning - K-Means Clustering")
+if page == "Unsupervised Learning (K-Means)":
+    st.header("🔍 Unsupervised Learning - K-Means Clustering")
 
-selected_cols = [
-    'PopularityScore',
-    'GoogleSearchIndex2024',
-    'RottenTomatoesScore',
-    'BoxOfficeMillions'
-]
+    selected_cols = [
+        'PopularityScore',
+        'GoogleSearchIndex2024',
+        'RottenTomatoesScore',
+        'BoxOfficeMillions'
+    ]
 
-data_cluster = df[selected_cols].dropna()
-scaler = MinMaxScaler()
-data_scaled = scaler.fit_transform(data_cluster)
-df_scaled = pd.DataFrame(data_scaled, columns=selected_cols)
+    data_cluster = df[selected_cols].dropna()
+    scaler = MinMaxScaler()
+    data_scaled = scaler.fit_transform(data_cluster)
+    df_scaled = pd.DataFrame(data_scaled, columns=selected_cols)
 
-n_clusters = 3
-kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-labels = kmeans.fit_predict(data_scaled)
-df_result = df.copy()
-df_result['Cluster'] = labels
+    n_clusters = 3
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
+    labels = kmeans.fit_predict(data_scaled)
+    df_result = df.copy()
+    df_result['Cluster'] = labels
 
-cluster_names = {
-    0: "Viral Sensation",
-    1: "Classic Icons",
-    2: "Underrated Gems"
-}
-df_result['Cluster Label'] = df_result['Cluster'].map(cluster_names)
+    cluster_names = {
+        0: "Viral Sensation",
+        1: "Classic Icons",
+        2: "Underrated Gems"
+    }
+    df_result['Cluster Label'] = df_result['Cluster'].map(cluster_names)
 
-st.subheader("📁 Hasil Clustering")
-st.dataframe(df_result[['PrincessName'] + selected_cols + ['Cluster', 'Cluster Label']])
+    st.subheader("📁 Hasil Clustering")
+    st.dataframe(df_result[['PrincessName'] + selected_cols + ['Cluster', 'Cluster Label']])
 
-st.subheader("📌 Statistik Tiap Cluster")
-st.write(df_result.groupby('Cluster Label')[selected_cols].mean())
+    st.subheader("📌 Statistik Tiap Cluster")
+    st.write(df_result.groupby('Cluster Label')[selected_cols].mean())
 
-st.subheader("📈 Elbow Method")
-# Plot Elbow Method
-wcss = []
-for i in range(1, 11):
-    kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
-    kmeans.fit(data_scaled)
-    wcss.append(kmeans.inertia_)
+    st.subheader("📈 Elbow Method")
+    wcss = []
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
+        kmeans.fit(data_scaled)
+        wcss.append(kmeans.inertia_)
 
-fig, ax = plt.subplots()
-ax.plot(range(1, 11), wcss, marker='o')
-ax.set_title('Metode Elbow untuk Menentukan Jumlah Cluster')
-ax.set_xlabel('Jumlah Cluster')
-ax.set_ylabel('WCSS')
-st.pyplot(fig)
+    fig, ax = plt.subplots()
+    ax.plot(range(1, 11), wcss, marker='o')
+    ax.set_title('Metode Elbow untuk Menentukan Jumlah Cluster')
+    ax.set_xlabel('Jumlah Cluster')
+    ax.set_ylabel('WCSS')
+    st.pyplot(fig)
 
-st.subheader("🧭 Visualisasi Clustering")
+    st.subheader("🧭 Visualisasi Clustering")
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    ax2.scatter(
+        data_scaled[:, 0],
+        data_scaled[:, 1],
+        c=labels,
+        cmap='viridis',
+        marker='o'
+    )
+    ax2.set_title('K-Means Clustering of Disney Princesses')
+    ax2.set_xlabel('Popularity Score (scaled)')
+    ax2.set_ylabel('Google Search Index 2024 (scaled)')
+    colorbar = fig2.colorbar(ax2.collections[0], ax=ax2)
+    colorbar.set_label('Cluster')
+    st.pyplot(fig2)
 
-fig2, ax2 = plt.subplots(figsize=(10, 6))
-ax2.scatter(
-    data_scaled[:, 0],  # Popularity Score (scaled)
-    data_scaled[:, 1],  # Google Search Index 2024 (scaled)
-    c=labels,
-    cmap='viridis',
-    marker='o'
-)
-ax2.set_title('K-Means Clustering of Disney Princesses')
-ax2.set_xlabel('Popularity Score (scaled)')
-ax2.set_ylabel('Google Search Index 2024 (scaled)')
-colorbar = fig2.colorbar(ax2.collections[0], ax=ax2)
-colorbar.set_label('Cluster')
-st.pyplot(fig2)
-
-st.subheader("📝 Detail Tiap Cluster")
-for cluster_id in sorted(cluster_names):
-    st.markdown(f"**Cluster {cluster_id} - {cluster_names[cluster_id]}**")
-    st.dataframe(df_result[df_result['Cluster'] == cluster_id][['PrincessName'] + selected_cols].reset_index(drop=True))
+    st.subheader("📝 Detail Tiap Cluster")
+    for cluster_id in sorted(cluster_names):
+        st.markdown(f"**Cluster {cluster_id} - {cluster_names[cluster_id]}**")
+        st.dataframe(df_result[df_result['Cluster'] == cluster_id][['PrincessName'] + selected_cols].reset_index(drop=True))
 
 # ---------------------------- SUPERVISED LEARNING (LOGISTIC REGRESSION) ----------------------------
 st.header("📉 Supervised Learning - Logistic Regression")
@@ -121,6 +132,43 @@ y_pred_proba = logreg.predict_proba(X_test_scaled)[:, 1]
 st.subheader("📋 Laporan Klasifikasi")
 report = classification_report(y_test, y_pred, output_dict=True)
 st.text(classification_report(y_test, y_pred))
+
+# Tampilkan hasil prediksi IsIconic
+st.subheader("📌 Hasil Prediksi IsIconic")
+pred_df = X_test.copy()
+pred_df['Actual_IsIconic'] = y_test.values
+pred_df['Predicted_IsIconic'] = y_pred
+st.dataframe(pred_df.head())
+
+st.markdown("""
+**Penjelasan:**
+- **Precision**: Seberapa akurat model saat memprediksi kelas tersebut. Misalnya, dari semua prediksi "ikonik", berapa yang benar-benar ikon.
+- **Recall**: Seberapa baik model menemukan semua contoh dari kelas tersebut. Misalnya, dari semua putri yang memang "ikonik", berapa yang berhasil ditemukan oleh model.
+- **F1-score**: Harmonik rata-rata precision dan recall, berguna untuk dataset tidak seimbang antara kelas.
+- **Support**: Jumlah data aktual dari masing-masing kelas di test set.
+
+Model ini mencoba membedakan antara putri yang ikonik dan tidak dengan mempertimbangkan faktor-faktor seperti:
+- Skor popularitas (Popularity Score, Google Search Index, dll)
+- Keberhasilan film (Box Office, IMDB)
+- Aktivitas penggemar (jumlah fan page, views TikTok)
+
+Hasil klasifikasi ini membantu dalam memahami fitur mana yang paling mempengaruhi kemungkinan seorang putri dianggap ikonik.
+
+---
+
+### Apa itu Matriks Kebingungan (Confusion Matrix)?
+Matriks ini membantu kita memahami bagaimana performa klasifikasi dalam bentuk tabel 2x2:
+- Baris = kelas aktual
+- Kolom = prediksi model
+
+**Empat elemen utama:**
+- **True Positive (TP)**: Model memprediksi "ikonik", dan memang benar.
+- **True Negative (TN)**: Model memprediksi "tidak ikonik", dan memang benar.
+- **False Positive (FP)**: Model memprediksi "ikonik", tapi sebenarnya tidak.
+- **False Negative (FN)**: Model memprediksi "tidak ikonik", padahal sebenarnya ikon.
+
+Kita menggunakan ini untuk menghitung metrik seperti akurasi, precision, recall, dan F1-score.
+""")
 
 st.markdown("""
 **Penjelasan:**
