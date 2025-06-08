@@ -72,20 +72,20 @@ ax.set_ylabel('WCSS')
 st.pyplot(fig)
 
 st.subheader("🧭 Visualisasi Clustering")
+
 fig2, ax2 = plt.subplots(figsize=(10, 6))
-sns.scatterplot(
-    data=df_result,
-    x='PopularityScore',
-    y='BoxOfficeMillions',
-    hue='Cluster Label',
-    palette='Set2',
-    s=100,
-    ax=ax2
+ax2.scatter(
+    data_scaled[:, 0],  # Popularity Score (scaled)
+    data_scaled[:, 1],  # Google Search Index 2024 (scaled)
+    c=labels,
+    cmap='viridis',
+    marker='o'
 )
-ax2.set_title('Visualisasi Cluster Berdasarkan Popularity Score dan Box Office')
-ax2.set_xlabel('Popularity Score')
-ax2.set_ylabel('Box Office Millions')
-ax2.legend(title='Cluster')
+ax2.set_title('K-Means Clustering of Disney Princesses')
+ax2.set_xlabel('Popularity Score (scaled)')
+ax2.set_ylabel('Google Search Index 2024 (scaled)')
+colorbar = fig2.colorbar(ax2.collections[0], ax=ax2)
+colorbar.set_label('Cluster')
 st.pyplot(fig2)
 
 st.subheader("📝 Detail Tiap Cluster")
