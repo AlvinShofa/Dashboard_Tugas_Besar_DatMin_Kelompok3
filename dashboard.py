@@ -106,10 +106,37 @@ features_for_regression = [
 target = 'IsIconic'
 X = df[features_for_regression]
 y = df[target]
+
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Info: ukuran data
+st.write(f"Jumlah data latih: {X_train.shape[0]}")
+st.write(f"Jumlah data uji: {X_test.shape[0]}")
+st.write("Distribusi Label pada Data Latih:")
+st.dataframe(y_train.value_counts().rename("Jumlah").reset_index().rename(columns={"index": "IsIconic"}))
+st.write("Distribusi Label pada Data Uji:")
+st.dataframe(y_test.value_counts().rename("Jumlah").reset_index().rename(columns={"index": "IsIconic"}))
+
+# Normalisasi
 scaler = MinMaxScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
+
+# Tampilkan sebagian data hasil normalisasi
+st.subheader("🔍 Contoh Data Setelah Normalisasi (Training Set)")
+st.dataframe(pd.DataFrame(X_train_scaled, columns=features_for_regression).head())
+
+# Modeling
+logreg = LogisticRegression(random_state=42, max_iter=1000)
+logreg.fit(X_train_scaled, y_train)
+y_pred = logreg.predict(X_test_scaled)
+y_pred_proba = logreg.predict_proba(X_test_scaled)[:, 1]
+
+# Ringkasan akurasi
+accuracy = logreg.score(X_test_scaled, y_test)
+st.subheader("🎯 Akurasi Model")
+st.write(f"Akurasi pada data uji: {accuracy:.2f}")
 
 # Modeling
 logreg = LogisticRegression(random_state=42, max_iter=1000)
