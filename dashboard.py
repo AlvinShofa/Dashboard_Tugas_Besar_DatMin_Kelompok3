@@ -71,22 +71,21 @@ ax.set_xlabel('Jumlah Cluster')
 ax.set_ylabel('WCSS')
 st.pyplot(fig)
 
-st.subheader("🧭 Visualisasi Clustering")
-
-fig2, ax2 = plt.subplots(figsize=(10, 6))
-ax2.scatter(
-    data_scaled[:, 0],  # Popularity Score (scaled)
-    data_scaled[:, 1],  # Google Search Index 2024 (scaled)
-    c=labels,
-    cmap='viridis',
-    marker='o'
+# Visualisasi 2D
+st.subheader("🧭 Visualisasi Clustering (2 Fitur Pertama)")
+x_feature, y_feature = selected_cols[0], selected_cols[1]
+fig, ax = plt.subplots()
+scatter = ax.scatter(
+    df_scaled[x_feature], df_scaled[y_feature],
+    c=labels, cmap='Set2'
 )
-ax2.set_title('K-Means Clustering of Disney Princesses')
-ax2.set_xlabel('Popularity Score (scaled)')
-ax2.set_ylabel('Google Search Index 2024 (scaled)')
-colorbar = fig2.colorbar(ax2.collections[0], ax=ax2)
-colorbar.set_label('Cluster')
-st.pyplot(fig2)
+centroids = kmeans.cluster_centers_
+ax.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=200, label='Centroid')
+ax.set_xlabel(x_feature)
+ax.set_ylabel(y_feature)
+ax.set_title("Clustering K-Means")
+ax.legend()
+st.pyplot(fig)
 
 st.subheader("📝 Detail Tiap Cluster")
 for cluster_id in sorted(cluster_names):
