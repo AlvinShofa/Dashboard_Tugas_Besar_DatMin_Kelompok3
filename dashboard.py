@@ -72,12 +72,20 @@ ax.set_ylabel('WCSS')
 st.pyplot(fig)
 
 st.subheader("🧭 Visualisasi Clustering")
-
-# Menggunakan pairplot seperti di notebook ipynb
-import seaborn as sns
-df_viz = df_result[['PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore', 'BoxOfficeMillions', 'Cluster Label']].copy()
-
-fig2 = sns.pairplot(df_viz, hue='Cluster Label', palette='Set2', diag_kind='kde')
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+sns.scatterplot(
+    data=df_result,
+    x='PopularityScore',
+    y='BoxOfficeMillions',
+    hue='Cluster Label',
+    palette='Set2',
+    s=100,
+    ax=ax2
+)
+ax2.set_title('Visualisasi Cluster Berdasarkan Popularity Score dan Box Office')
+ax2.set_xlabel('Popularity Score')
+ax2.set_ylabel('Box Office Millions')
+ax2.legend(title='Cluster')
 st.pyplot(fig2)
 
 st.subheader("📝 Detail Tiap Cluster")
