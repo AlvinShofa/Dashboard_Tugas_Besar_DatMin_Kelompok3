@@ -73,22 +73,52 @@ ax.set_ylabel('WCSS')
 st.pyplot(fig)
 
 # Visualisasi 2D
-st.subheader("🧭 Visualisasi Clustering (2 Fitur Pertama)")
-x_feature, y_feature = selected_cols[0], selected_cols[1]
-x_idx = selected_cols.index(x_feature)
-y_idx = selected_cols.index(y_feature)
+st.subheader("🧭 Visualisasi Clustering Berdasarkan PCA")
+from sklearn.decomposition import PCA
+from matplotlib.colors import to_hex
 
-fig, ax = plt.subplots()
+# PCA untuk reduksi ke 2 dimensi
+from sklearn.decomposition import PCA
+pca = PCA(n_components=2)
+data_pca = pca.fit_transform(data_scaled)
+centroids_pca = pca.transform(kmeans_final.cluster_centers_)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Plot data
 scatter = ax.scatter(
-    df_scaled[x_feature], df_scaled[y_feature],
-    c=labels, cmap='Set2'
+    data_pca[:, 0], data_pca[:, 1],
+    c=labels, cmap='viridis', s=60, edgecolor='k'
 )
-centroids = kmeans_final.cluster_centers_
-ax.scatter(centroids[:, x_idx], centroids[:, y_idx], c='red', marker='X', s=200, label='Centroid')
-ax.set_xlabel(x_feature)
-ax.set_ylabel(y_feature)
-ax.set_title("Clustering K-Means")
+
+# Plot centroid
+ax.scatter(
+    centroids_pca[:, 0], centroids_pca[:, 1],
+    c='red', marker='X', s=200, label='Centroid'
+)
+
+# Label sumbu dengan penjelasan PCA
+ax.set_xlabel("PCA Component 1 (Gabungan PopularityScore, GoogleSearchIndex, & BoxOfficeMillionss)")
+ax.set_ylabel("PCA Component 2 (Kualitas Film & Variasi Tambahan)")
+ax.set_title("Clustering K-Means Berdasarkan Semua Fitur (PCA)")
+
+# Tambahkan legenda warna + kode hex
+unique_labels = sorted(set(labels))
+colors = scatter.cmap(scatter.norm(unique_labels))
+from matplotlib.colors import to_hex
+hex_colors = [to_hex(c) for c in colors]
+
+cluster_names = {
+    0: "Viral Sensation",
+    1: "Classic Icons",
+    2: "Underrated Gems"
+}
+
+for i, hex_color in zip(unique_labels, hex_colors):
+    ax.scatter([], [], c=hex_color, label=f'Cluster {i} - {cluster_names[i]}')
+
 ax.legend()
+ax.grid(True)
 st.pyplot(fig)
 
 st.subheader("📝 Detail Tiap Cluster")
