@@ -30,10 +30,10 @@ with st.expander("🔍 Informasi Umum Dataset"):
     st.write(f"Jumlah baris: {df.shape[0]}")
     st.write(f"Jumlah kolom: {df.shape[1]}")
     st.write("Jumlah data null:")
-    st.dataframe(df.isnull().sum())
+    st.dataframe(df.isnull().sum())    
 
 with st.expander("📈 Statistik Deskriptif"):
-    st.dataframe(df.describe())
+    st.dataframe(df.describe())    
 
 with st.expander("📊 Korelasi Antar Variabel Numerik"):
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
@@ -43,15 +43,14 @@ with st.expander("📊 Korelasi Antar Variabel Numerik"):
 
 # ---------------------------- BOXPLOT OUTLIERS ----------------------------
 st.header("📦 Deteksi Outlier - Boxplot")
-
 selected_outlier_features = st.multiselect(
-    "Pilih fitur untuk visualisasi boxplot outlier:",
+    "Pilih fitur untuk visualisasi boxplot outlier!",
     numeric_cols,
     default=['PopularityScore', 'GoogleSearchIndex2024', 'BoxOfficeMillions']
 )
 
 if selected_outlier_features:
-    fig, axes = plt.subplots(nrows=1, ncols=len(selected_outlier_features), figsize=(5*len(selected_outlier_features), 5))
+    fig, axes = plt.subplots(nrows=1, ncols=len(selected_outlier_features), figsize=(4*len(selected_outlier_features), 4))
     if len(selected_outlier_features) == 1:
         axes = [axes]
     for i, col in enumerate(selected_outlier_features):
@@ -61,11 +60,35 @@ if selected_outlier_features:
 else:
     st.info("Pilih minimal satu fitur untuk ditampilkan sebagai boxplot.")
 
+# ---------------------------- ELBOW METHOD ----------------------------
+st.header("📐 Elbow Method")
+clustering_features = ['PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore', 'BoxOfficeMillions']
+
+data_cluster = df[clustering_features].dropna()
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(data_cluster)
+
+inertias = []
+
+K = range(1, 11)  # Mengecek k dari 1 sampai 10
+for k_elbow in K:
+    kmeans_elbow = KMeans(n_clusters=k_elbow, n_init='auto', random_state=42)
+    kmeans_elbow.fit(data_scaled)
+    inertias.append(kmeans_elbow.inertia_)
+
+fig_elbow, ax_elbow = plt.subplots(figsize=(4, 3))
+ax_elbow.plot(K, inertias, marker='o')
+ax_elbow.set_xlabel('Jumlah Cluster (k)')
+ax_elbow.set_ylabel('Inertia')
+ax_elbow.set_title('Metode Elbow')
+
+st.pyplot(fig_elbow)
+
 # ---------------------------- K-MEANS CLUSTERING ----------------------------
 st.header("🔍 Unsupervised Learning - K-Means Clustering")
 
 clustering_features = st.multiselect(
-    "Pilih fitur untuk proses clustering:",
+    "Pilih fitur untuk proses clustering (gunakan yang sama seperti Elbow di atas ya):",
     ['PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore', 'BoxOfficeMillions'],
     default=['PopularityScore', 'GoogleSearchIndex2024', 'RottenTomatoesScore', 'BoxOfficeMillions']
 )
@@ -86,35 +109,34 @@ if clustering_features:
 
     st.subheader("📊 Visualisasi Clustering (PCA 2D + Region Klaster)")
 
-# PCA
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(data_scaled)
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(data_scaled)
 
-# Fit ulang KMeans di data 2D hasil PCA
-kmeans_2d = KMeans(n_clusters=k, random_state=42, n_init='auto')
-labels_2d = kmeans_2d.fit_predict(X_pca)
+    kmeans_2d = KMeans(n_clusters=k, random_state=42, n_init='auto')
+    labels_2d = kmeans_2d.fit_predict(X_pca)
 
-# Buat meshgrid untuk area region
-x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
-y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
-xx, yy = np.meshgrid(np.linspace(x_min, x_max, 500),
-                     np.linspace(y_min, y_max, 500))
-Z = kmeans_2d.predict(np.c_[xx.ravel(), yy.ravel()])
-Z = Z.reshape(xx.shape)
+    x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
+    y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 500),
+                         np.linspace(y_min, y_max, 500))
+    Z = kmeans_2d.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
 
-# Plot region dan scatter cluster
-fig, ax = plt.subplots()
-cmap_light = ListedColormap(sns.color_palette("pastel", n_colors=k).as_hex())
-cmap_bold = ListedColormap(sns.color_palette("Set1", n_colors=k).as_hex())
+    fig, ax = plt.subplots(figsize=(4, 3))
+    cmap_light = ListedColormap(sns.color_palette("pastel", n_colors=k).as_hex()) 
+    cmap_bold = ListedColormap(sns.color_palette("Set1", n_colors=k).as_hex())  
 
-ax.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
-scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels_2d, cmap=cmap_bold, edgecolor='k')
-ax.set_xlabel("PCA Component 1")
-ax.set_ylabel("PCA Component 2")
-ax.set_title("Visualisasi Cluster (PCA) + Region")
-legend_labels = [f"Cluster {i}" for i in range(k)]
-ax.legend(handles=scatter.legend_elements()[0], labels=legend_labels)
-st.pyplot(fig)
+    ax.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
+    scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels_2d, cmap=cmap_bold, edgecolor='k')
+    ax.set_xlabel("PCA Component 1")
+    ax.set_ylabel("PCA Component 2")
+    ax.set_title("Visualisasi Cluster (PCA) + Region")
+    legend_labels = [f"Cluster {i}" for i in range(k)]
+
+    ax.legend(handles=scatter.legend_elements()[0], labels=legend_labels)
+
+    st.pyplot(fig)
+
 # ---------------------------- LOGISTIC REGRESSION ----------------------------
 st.header("📉 Supervised Learning - Logistic Regression")
 
@@ -146,7 +168,7 @@ st.text(classification_report(y_test, y_pred))
 
 # Confusion Matrix
 conf_matrix = confusion_matrix(y_test, y_pred)
-fig2, ax2 = plt.subplots()
+fig2, ax2 = plt.subplots(figsize=(4, 3))
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
             xticklabels=['Bukan Ikonik', 'Ikonik'],
             yticklabels=['Bukan Ikonik', 'Ikonik'],
@@ -159,7 +181,7 @@ st.pyplot(fig2)
 # ROC Curve
 fpr, tpr, _ = roc_curve(y_test, y_proba)
 roc_auc = roc_auc_score(y_test, y_proba)
-fig3, ax3 = plt.subplots()
+fig3, ax3 = plt.subplots(figsize=(4, 3))
 ax3.plot(fpr, tpr, color='darkorange', lw=2, label=f'AUC = {roc_auc:.2f}')
 ax3.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 ax3.set_xlabel('False Positive Rate')
@@ -169,16 +191,16 @@ ax3.legend(loc="lower right")
 st.pyplot(fig3)
 
 # Feature Importance
-coef_df = pd.DataFrame({
+coef_df = pd.DataFrame({ 
     'Fitur': regression_features,
     'Koefisien': logreg.coef_[0],
-    'Odds Ratio': np.exp(logreg.coef_[0])
+    'Odds Ratio': np.exp(logreg.coef_[0]) 
 }).sort_values('Odds Ratio', ascending=False)
 
 st.subheader("📈 Pentingnya Fitur & Odds Ratio")
 st.dataframe(coef_df)
 
-fig4, ax4 = plt.subplots(figsize=(8, 6))
+fig4, ax4 = plt.subplots(figsize=(4, 3))
 sns.barplot(x='Koefisien', y='Fitur', data=coef_df, palette='viridis', ax=ax4)
 ax4.set_title("Kontribusi Fitur dalam Prediksi")
 st.pyplot(fig4)
