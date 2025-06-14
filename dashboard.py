@@ -137,6 +137,15 @@ if clustering_features:
 
     st.pyplot(fig)
 
+    st.subheader("📌 Statistik Tiap Cluster")
+    st.dataframe(df_clustered.groupby("Cluster")[clustering_features].mean())
+
+    st.subheader("📁 Data dengan Label Klaster")
+    df["Cluster"] = cluster_labels
+    st.dataframe(df[['PrincessName'] + clustering_features + ['Cluster']])
+else:
+    st.warning("Silakan pilih fitur untuk melanjutkan proses clustering.")
+    
 # ---------------------------- LOGISTIC REGRESSION ----------------------------
 st.header("📉 Supervised Learning - Logistic Regression")
 
