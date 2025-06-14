@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.colors import ListedColormap
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.cluster import KMeans
@@ -81,27 +82,39 @@ if clustering_features:
     df_clustered["Cluster"] = cluster_labels
 
     silhouette = silhouette_score(data_scaled, cluster_labels)
-    st.success(f"Silhouette Score untuk k={k}: **{silhouette:.4f}**")
+    st.success(f"Silhouette Score untuk k={k}: *{silhouette:.4f}*")
 
-    st.subheader("📊 Visualisasi Clustering (PCA 2D)")
-    pca = PCA(n_components=2)
-    pca_result = pca.fit_transform(data_scaled)
-    fig, ax = plt.subplots()
-    sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=cluster_labels, palette='Set1', ax=ax)
-    ax.set_xlabel("PCA Component 1")
-    ax.set_ylabel("PCA Component 2")
-    ax.set_title("Visualisasi Cluster (PCA)")
-    st.pyplot(fig)
+    st.subheader("📊 Visualisasi Clustering (PCA 2D + Region Klaster)")
 
-    st.subheader("📌 Statistik Tiap Cluster")
-    st.dataframe(df_clustered.groupby("Cluster")[clustering_features].mean())
+# PCA
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(data_scaled)
 
-    st.subheader("📁 Data dengan Label Klaster")
-    df["Cluster"] = cluster_labels
-    st.dataframe(df[['PrincessName'] + clustering_features + ['Cluster']])
-else:
-    st.warning("Silakan pilih fitur untuk melanjutkan proses clustering.")
+# Fit ulang KMeans di data 2D hasil PCA
+kmeans_2d = KMeans(n_clusters=k, random_state=42, n_init='auto')
+labels_2d = kmeans_2d.fit_predict(X_pca)
 
+# Buat meshgrid untuk area region
+x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
+y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
+xx, yy = np.meshgrid(np.linspace(x_min, x_max, 500),
+                     np.linspace(y_min, y_max, 500))
+Z = kmeans_2d.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+# Plot region dan scatter cluster
+fig, ax = plt.subplots()
+cmap_light = ListedColormap(sns.color_palette("pastel", n_colors=k).as_hex())
+cmap_bold = ListedColormap(sns.color_palette("Set1", n_colors=k).as_hex())
+
+ax.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
+scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels_2d, cmap=cmap_bold, edgecolor='k')
+ax.set_xlabel("PCA Component 1")
+ax.set_ylabel("PCA Component 2")
+ax.set_title("Visualisasi Cluster (PCA) + Region")
+legend_labels = [f"Cluster {i}" for i in range(k)]
+ax.legend(handles=scatter.legend_elements()[0], labels=legend_labels)
+st.pyplot(fig)
 # ---------------------------- LOGISTIC REGRESSION ----------------------------
 st.header("📉 Supervised Learning - Logistic Regression")
 
@@ -128,7 +141,7 @@ y_proba = logreg.predict_proba(X_test_scaled)[:, 1]
 
 # Evaluation
 st.subheader("🎯 Evaluasi Model")
-st.write(f"Akurasi: **{logreg.score(X_test_scaled, y_test):.2f}**")
+st.write(f"Akurasi: *{logreg.score(X_test_scaled, y_test):.2f}*")
 st.text(classification_report(y_test, y_pred))
 
 # Confusion Matrix
